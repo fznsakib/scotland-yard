@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.Set;
 import java.util.function.Consumer;
-
+import java.util.*;
 import uk.ac.bris.cs.gamekit.graph.Edge;
 import uk.ac.bris.cs.scotlandyard.ai.AIPool;
 import uk.ac.bris.cs.scotlandyard.ai.ManagedAI;
@@ -48,11 +48,11 @@ public class MrX_AI implements PlayerFactory {
 					scoreForMoves.add(score(view, ((DoubleMove) move).finalDestination()));
 			}
 
-			// If no better scored moves are found, use least worst move
+			// Use least worst move by seeing which destination is furthest away from all players
 			int bestScore = scoreForMoves.get(0);
 			for (int i = 1; i < scoreForMoves.size(); i++)
 			{
-				if (scoreForMoves.get(i) < bestScore)
+				if (scoreForMoves.get(i) > bestScore)
 					bestScore = scoreForMoves.get(i);
 			}
 			for (int i = 0; i < scoreForMoves.size(); i++)
@@ -65,26 +65,23 @@ public class MrX_AI implements PlayerFactory {
 		private int score(ScotlandYardView view, int location)
 		{
 			// Calculates a score according to where the detectives are
-			int score = 0;
+			int distance = 0;
 			int detectiveLocation;
 
 			// Get all nodes that are connected to MrX's current location
-			Collection<Edge<Integer, Transport>> accessibleNodes = view.getGraph().getEdgesFrom(view.getGraph().getNode(location));
+			//Collection<Edge<Integer, Transport>> accessibleNodes = view.getGraph().getEdgesFrom(view.getGraph().getNode(location));
 
+			Map<Integer, Integer> distancesFromSource = new DijkstraPath(location, view).calculateShortestPathFromSource(view);
+			int distanceFromDetective;
 			// Cycles through each connected node to see if there is a detective there. If there is, add to the score
 			for (int i = 1; i < view.getPlayers().size(); i ++)
 			{
 				detectiveLocation = view.getPlayerLocation(view.getPlayers().get(i));
-				for (Edge <Integer, Transport> edge : accessibleNodes)
-				{
-					// Check if the connected node contains a detective
-					if (edge.destination().equals(view.getGraph().getNode(detectiveLocation)))
-					{
-						score++;
-					}
-				}
+				distanceFromDetective = distancesFromSource.get(detectiveLocation);
+				distance = distance + distanceFromDetective;
+				System.out.println("Distance from Detective " + view.getPlayers().get(i) + ": " + distanceFromDetective);
 			}
-			return score;
+			return distance;
 		}
 	}
 }

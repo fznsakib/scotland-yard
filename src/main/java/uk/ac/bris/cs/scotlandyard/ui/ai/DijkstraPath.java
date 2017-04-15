@@ -1,72 +1,68 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
-import uk.ac.bris.cs.gamekit.graph.Graph;
-import uk.ac.bris.cs.gamekit.graph.Node;
+import uk.ac.bris.cs.gamekit.graph.*;
 import java.util.*;
-import uk.ac.bris.cs.gamekit.graph.Edge;
 import uk.ac.bris.cs.scotlandyard.model.*;
 import static uk.ac.bris.cs.scotlandyard.model.Transport.Bus;
 
 public class DijkstraPath {
 
-    private Set<Map<Integer, LinkedList<Map<Integer, Integer>>>> shortestPathNodes = new HashSet<>();
-    private Set<Map<Integer, Integer>> distanceNodes = new HashSet<>();
+    //private Map<Integer, LinkedList<Map<Integer, Integer>>> shortestPathNodes = new HashMap<>();
+    private HashMap<Integer, Integer> distanceNodes = new HashMap<>();
+    private Set<Integer> unsettledNodes = new HashSet<>();
+    private Set<Integer> settledNodes = new HashSet<>();
+    private HashMap<Integer, LinkedList<Edge<Integer, Transport>>> pathNodes = new HashMap<>();
 
-    private Set<Map<Integer, Integer>> unsettledNodes = new HashSet<>();
-    private Set<Map<Integer, Integer>> settledNodes = new HashSet<>();
-
-    public DijkstraPath(int start, Graph graph) {
+    public DijkstraPath(int start, ScotlandYardView view) {
 
         // Grab all nodes from current graph, and convert to nodes holding distance from source
-        List<Node> allNodes = graph.getNodes();
-        Map<Integer, Integer> data = new HashMap<>();
+        List<Node<Integer>> allNodes = view.getGraph().getNodes();
+
 
         for (Node node : allNodes)
         {
-            if (node.value().equals(start))
-            {
-                data.put((Integer) node.value(), 0);
-                distanceNodes.add(data);
-            }
-            data.put((Integer) node.value(), Integer.MAX_VALUE);
-            distanceNodes.add(data);
+            distanceNodes.put((Integer) node.value(), Integer.MAX_VALUE);
+            pathNodes.put((Integer) node.value(), new LinkedList<>());
         }
+        distanceNodes.replace(start, 0);
 
         // Initialise unsettled nodes with source node
-        this.unsettledNodes.add(findNode(start));
+        this.unsettledNodes.add(start);
     }
 
-    public Set<Map<Integer, LinkedList<Map<Integer, Integer>>>> calculateShortestPathFromSource(Graph graph)
+    Map<Integer, Integer> calculateShortestPathFromSource(ScotlandYardView view)
     {
         while (unsettledNodes.size() != 0)
         {
-            Map<Integer, Integer> currentNode = getLowestDistanceNode(unsettledNodes);
+            int currentNode = getLowestDistanceNode(unsettledNodes);
             unsettledNodes.remove(currentNode);
 
-            Collection<Edge<Integer, Transport>> adjacentEdges = graph.getEdgesFrom(graph.getNode(currentNode.keySet().toArray()[0]));
+            Collection<Edge<Integer, Transport>> adjacentEdges;
+            adjacentEdges = view.getGraph().getEdgesFrom(view.getGraph().getNode(currentNode));
+            System.out.println(adjacentEdges);
 
             for (Edge<Integer, Transport> edge : adjacentEdges)
             {
-                Map<Integer, Integer> adjacentNode = findNode(edge.destination().value());
-                Integer edgeWeight = weightFromTransport(edge.data());
-                if (!keysFrom(settledNodes).contains(edge.destination().value()))
+                int adjacentNode = edge.destination().value();
+                int edgeWeight = weightFromTransport(edge.data());
+                if (!settledNodes.contains(adjacentNode))
                 {
-                    calculateMinDistance(adjacentNode, edgeWeight, currentNode);
+                    calculateMinDistance(adjacentNode, edgeWeight, currentNode, edge);
                     unsettledNodes.add(adjacentNode);
                 }
             }
             settledNodes.add(currentNode);
         }
-        return shortestPathNodes;
+        return distanceNodes;
     }
 
-    private Map<Integer, Integer> getLowestDistanceNode(Set<Map<Integer, Integer>> unsettledNodes)
+    private int getLowestDistanceNode(Set<Integer> unsettledNodes)
     {
         int lowestDistance = Integer.MAX_VALUE;
-        Map<Integer, Integer> lowestDistanceNode = null;
-        for (Map<Integer, Integer> node : unsettledNodes)
+        int lowestDistanceNode = 0;
+        for (Integer node : unsettledNodes)
         {
-            int nodeDistance = (Integer) node.values().toArray()[0];
+            int nodeDistance = distanceNodes.get(node);
             if (nodeDistance < lowestDistance)
             {
                 lowestDistance = nodeDistance;
@@ -76,23 +72,19 @@ public class DijkstraPath {
         return lowestDistanceNode;
     }
 
-    private void calculateMinDistance(Map<Integer, Integer> evaluationNode, int edgeWeight, Map<Integer, Integer> currentNode)
+    private void calculateMinDistance(int adjacentNode, int edgeWeight, int currentNode, Edge<Integer, Transport> edge)
     {
-        int sourceDistance = (Integer) currentNode.values().toArray()[0];
-        if (sourceDistance + edgeWeight < (Integer) evaluationNode.values().toArray()[0])
+        int sourceDistance = distanceNodes.get(currentNode);
+        if ((sourceDistance + edgeWeight) < distanceNodes.get(adjacentNode))
         {
-            evaluationNode.remove((Integer) evaluationNode.keySet().toArray()[0]);
-            evaluationNode.put((Integer) evaluationNode.keySet().toArray()[0], (sourceDistance + edgeWeight));
-            LinkedList<Map<Integer, Integer>> shortestPath = new LinkedList<>(getShortestPath(currentNode));
-            shortestPath.add(currentNode);
-            removeShortestPathFromList(shortestPathNodes, evaluationNode);
-            Map<Integer, LinkedList<Map< Integer, Integer >>> data = new HashMap<>();
-            data.put((Integer) evaluationNode.values().toArray()[0], shortestPath);
-            shortestPathNodes.add(data);
+            distanceNodes.replace(adjacentNode, (sourceDistance + edgeWeight));
+            LinkedList<Edge<Integer, Transport>> shortestPath = new LinkedList<>(pathNodes.get(currentNode));
+            shortestPath.add(edge);
+            pathNodes.replace(adjacentNode, shortestPath);
         }
     }
 
-    private LinkedList<Map<Integer, Integer>> getShortestPath(Map<Integer, Integer> sourceNode)
+    /*private LinkedList<Map<Integer, Integer>> getShortestPath(Map<Integer, Integer> sourceNode)
     {
         int sourceNodeValue = (Integer) sourceNode.keySet().toArray()[0];
         LinkedList<Map<Integer, Integer>> shortestPath = new LinkedList<>();
@@ -138,7 +130,7 @@ public class DijkstraPath {
             }
         }
         return null;
-    }
+    }*/
 
     private int weightFromTransport(Transport transport)
     {
