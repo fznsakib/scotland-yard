@@ -30,16 +30,13 @@ public class MrX_AI implements PlayerFactory {
 		return new MyPlayer();
 	}
 
-	// Sample player that selects a random move
+	// Sample player that selects a move
 	private static class MyPlayer implements Player {
-
-		private final Random random = new Random();
 
 		@Override
 		public void makeMove(ScotlandYardView view, int location, Set<Move> moves, Consumer<Move> callback) {
 			// TODO do something interesting here; find the best move
-			System.out.println(moves);
-			// Picks a random move
+
 			ArrayList<Integer> scoreForMoves = new ArrayList<>();
 
 			// Add a score to an array for each move possible
@@ -89,6 +86,5 @@ public class MrX_AI implements PlayerFactory {
 			}
 			return score;
 		}
-
 	}
 }
