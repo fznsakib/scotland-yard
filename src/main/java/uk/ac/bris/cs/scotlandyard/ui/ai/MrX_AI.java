@@ -71,16 +71,19 @@ public class MrX_AI implements PlayerFactory {
 			// Get all nodes that are connected to MrX's current location
 			//Collection<Edge<Integer, Transport>> accessibleNodes = view.getGraph().getEdgesFrom(view.getGraph().getNode(location));
 
-			Map<Integer, Integer> distancesFromSource = new DijkstraPath(location, view).calculateShortestPathFromSource(view);
+			DijkstraPath boardPath = new DijkstraPath(location, view);
 			int distanceFromDetective;
+
 			// Cycles through each connected node to see if there is a detective there. If there is, add to the score
 			for (int i = 1; i < view.getPlayers().size(); i ++)
 			{
 				detectiveLocation = view.getPlayerLocation(view.getPlayers().get(i));
-				distanceFromDetective = distancesFromSource.get(detectiveLocation);
+				distanceFromDetective = boardPath.getDistanceFromDetective(detectiveLocation);
 				distance = distance + distanceFromDetective;
 				System.out.println("Distance from Detective " + view.getPlayers().get(i) + ": " + distanceFromDetective);
 			}
+			System.out.println("Path from Detective at " + view.getPlayerLocation(Colour.Blue) +  " : " + boardPath.getPathFromDetective(view.getPlayerLocation(Colour.Blue)));
+
 			return distance;
 		}
 	}

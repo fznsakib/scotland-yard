@@ -12,8 +12,11 @@ public class DijkstraPath {
     private Set<Integer> unsettledNodes = new HashSet<>();
     private Set<Integer> settledNodes = new HashSet<>();
     private HashMap<Integer, LinkedList<Edge<Integer, Transport>>> pathNodes = new HashMap<>();
+    private ScotlandYardView view;
 
     public DijkstraPath(int start, ScotlandYardView view) {
+
+        this.view = view;
 
         // Grab all nodes from current graph, and convert to nodes holding distance from source
         List<Node<Integer>> allNodes = view.getGraph().getNodes();
@@ -24,13 +27,14 @@ public class DijkstraPath {
             distanceNodes.put((Integer) node.value(), Integer.MAX_VALUE);
             pathNodes.put((Integer) node.value(), new LinkedList<>());
         }
+        //System.out.println(pathNodes);
         distanceNodes.replace(start, 0);
 
         // Initialise unsettled nodes with source node
         this.unsettledNodes.add(start);
     }
 
-    Map<Integer, Integer> calculateShortestPathFromSource(ScotlandYardView view)
+    private Map<Integer, Integer> calculateShortestPathFromSource()
     {
         while (unsettledNodes.size() != 0)
         {
@@ -39,7 +43,7 @@ public class DijkstraPath {
 
             Collection<Edge<Integer, Transport>> adjacentEdges;
             adjacentEdges = view.getGraph().getEdgesFrom(view.getGraph().getNode(currentNode));
-            System.out.println(adjacentEdges);
+            //System.out.println(adjacentEdges);
 
             for (Edge<Integer, Transport> edge : adjacentEdges)
             {
@@ -82,6 +86,17 @@ public class DijkstraPath {
             shortestPath.add(edge);
             pathNodes.replace(adjacentNode, shortestPath);
         }
+    }
+
+    public int getDistanceFromDetective(int detectiveLocation)
+    {
+        return calculateShortestPathFromSource().get(detectiveLocation);
+    }
+
+    public LinkedList<Edge <Integer, Transport>> getPathFromDetective(int detectiveLocation)
+    {
+        calculateShortestPathFromSource();
+        return pathNodes.get(detectiveLocation);
     }
 
     /*private LinkedList<Map<Integer, Integer>> getShortestPath(Map<Integer, Integer> sourceNode)
