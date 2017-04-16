@@ -16,9 +16,14 @@ import uk.ac.bris.cs.scotlandyard.model.Colour;
 import uk.ac.bris.cs.scotlandyard.model.Move;
 import uk.ac.bris.cs.scotlandyard.model.Player;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYardView;
+import uk.ac.bris.cs.scotlandyard.model.Transport;
+import uk.ac.bris.cs.scotlandyard.model.Ticket;
+
 
 
 import uk.ac.bris.cs.scotlandyard.model.*;
+
+import static uk.ac.bris.cs.scotlandyard.model.Ticket.*;
 
 // Name the AI
 @ManagedAI("Mr X AI")
@@ -35,56 +40,97 @@ public class MrX_AI implements PlayerFactory {
 
 		@Override
 		public void makeMove(ScotlandYardView view, int location, Set<Move> moves, Consumer<Move> callback) {
-			// TODO do something interesting here; find the best move
 
-			ArrayList<Integer> scoreForMoves = new ArrayList<>();
+			Map<Move, Integer> movesWithScores = new HashMap<>();
 
 			// Add a score to an array for each move possible
 			for (Move move : moves)
 			{
-				if (move instanceof TicketMove)
-					scoreForMoves.add(score(view, ((TicketMove) move).destination()));
-				else if (move instanceof DoubleMove)
-					scoreForMoves.add(score(view, ((DoubleMove) move).finalDestination()));
+				if (move instanceof TicketMove) {
+					Scoring scoreObject = new Scoring(view, ((TicketMove) move).destination());
+					movesWithScores.put(move, scoreObject.totalScore());
+				}
+				else if (move instanceof DoubleMove) {
+					Scoring scoreObject = new Scoring(view, ((DoubleMove) move).finalDestination());
+					movesWithScores.put(move, scoreObject.totalScore());
+				}
 			}
 
-			// Use least worst move by seeing which destination is furthest away from all players
-			int bestScore = scoreForMoves.get(0);
-			for (int i = 1; i < scoreForMoves.size(); i++)
-			{
-				if (scoreForMoves.get(i) > bestScore)
-					bestScore = scoreForMoves.get(i);
-			}
-			for (int i = 0; i < scoreForMoves.size(); i++)
-			{
-				if (scoreForMoves.get(i) == bestScore)
-					callback.accept(new ArrayList<>(moves).get(i));
-			}
+			// Create a map that has all the best scoring move for each transport
+			Map<Ticket, Set<Move>> bestTicketMoves = findBestTicketMoves(view, moves, movesWithScores);
+
+			System.out.println("Choosing from best possible moves: " + bestTicketMoves);
+
+			// Deduce a move from the list of best moves taking into account current game factors such as round,
+			// number of tickets left, etc
+			Move chosenMove = chooseFromBestMoves(bestTicketMoves);
+
+			System.out.println("Chosen move: " + chosenMove);
+
+
+			callback.accept(chosenMove);
 		}
 
-		private int score(ScotlandYardView view, int location)
+		private Map<Ticket, Set<Move>> findBestTicketMoves(ScotlandYardView view, Set<Move> moves, Map<Move, Integer> movesWithScores)
 		{
-			// Calculates a score according to where the detectives are
-			int distance = 0;
-			int detectiveLocation;
+			Ticket[] ticketTypes = {Taxi, Bus, Underground, Secret, Double};
+			Map<Ticket, Set<Move>> bestTicketMoves = new HashMap<>();
 
-			// Get all nodes that are connected to MrX's current location
-			//Collection<Edge<Integer, Transport>> accessibleNodes = view.getGraph().getEdgesFrom(view.getGraph().getNode(location));
-
-			DijkstraPath boardPath = new DijkstraPath(location, view);
-			int distanceFromDetective;
-
-			// Cycles through each connected node to see if there is a detective there. If there is, add to the score
-			for (int i = 1; i < view.getPlayers().size(); i ++)
+			for (Ticket ticket : ticketTypes)
 			{
-				detectiveLocation = view.getPlayerLocation(view.getPlayers().get(i));
-				distanceFromDetective = boardPath.getDistanceFromDetective(detectiveLocation);
-				distance = distance + distanceFromDetective;
-				System.out.println("Distance from Detective " + view.getPlayers().get(i) + ": " + distanceFromDetective);
+				Set<Move> bestMoves = extractTicketMoves(moves, movesWithScores,  ticket);
+				bestTicketMoves.put(ticket, bestMoves);
 			}
-			System.out.println("Path from Detective at " + view.getPlayerLocation(Colour.Blue) +  " : " + boardPath.getPathFromDetective(view.getPlayerLocation(Colour.Blue)));
+			return bestTicketMoves;
+		}
 
-			return distance;
+		private Move chooseFromBestMoves(Map<Ticket, Set<Move>> bestTicketMoves)
+		{
+			Set<Move> allMoves = new HashSet<>();
+
+			// Collecting all moves in one set
+ 			for (Ticket ticket : bestTicketMoves.keySet())
+			{
+				allMoves.addAll(bestTicketMoves.get(ticket));
+			}
+
+			// If only one move with highest score, then choose that
+			if (allMoves.size() == 1)
+				return new ArrayList<>(allMoves).get(0);
+			
+
+		}
+
+		private Set<Move> extractTicketMoves(Set<Move> moves, Map<Move, Integer> movesWithScores, Ticket ticket)
+		{
+			int bestScore = 0;
+			Set<Move> bestMoves = new HashSet<>();
+			for (Move move : moves)
+			{
+				if (move instanceof TicketMove) {
+					if (((TicketMove) move).ticket().equals(ticket)) {
+						if ((movesWithScores.get(move) > bestScore)) {
+							bestMoves.clear();
+							bestScore = movesWithScores.get(move);
+							bestMoves.add(move);
+						} else if (movesWithScores.get(move) == bestScore) {
+							bestMoves.add(move);
+						}
+					}
+				}
+				else if (move instanceof DoubleMove){
+					if (Double.equals(ticket)) {
+						if ((movesWithScores.get(move) > bestScore)) {
+							bestMoves.clear();
+							bestScore = movesWithScores.get(move);
+							bestMoves.add(move);
+						} else if (movesWithScores.get(move) == bestScore) {
+							bestMoves.add(move);
+						}
+					}
+				}
+			}
+			return bestMoves;
 		}
 	}
 }
