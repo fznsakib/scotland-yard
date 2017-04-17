@@ -3,6 +3,9 @@ package uk.ac.bris.cs.scotlandyard.ui.ai;
 import uk.ac.bris.cs.gamekit.graph.*;
 import java.util.*;
 import uk.ac.bris.cs.scotlandyard.model.*;
+
+import static uk.ac.bris.cs.scotlandyard.model.Colour.Black;
+import static uk.ac.bris.cs.scotlandyard.model.Colour.Blue;
 import static uk.ac.bris.cs.scotlandyard.model.Transport.Bus;
 
 public class DijkstraPath {
@@ -12,12 +15,10 @@ public class DijkstraPath {
     private Set<Integer> settledNodes = new HashSet<>();
     private HashMap<Integer, LinkedList<Edge<Integer, Transport>>> pathNodes = new HashMap<>();
     private ScotlandYardView view;
-    private int start;
 
     public DijkstraPath(int start, ScotlandYardView view) {
 
         this.view = view;
-        this.start = start;
 
         // Grab all nodes from current graph, and convert to nodes holding distance from source
         List<Node<Integer>> allNodes = view.getGraph().getNodes();
@@ -101,16 +102,17 @@ public class DijkstraPath {
     }
 
     // Get a weighted distance from the location passed as the argument
-    public int getDistanceFromDetective(int detectiveLocation)
+    public int getDistanceFrom(int location)
     {
-        return calculateShortestPathFromSource().get(detectiveLocation);
+        calculateShortestPathFromSource();
+        return distanceNodes.get(location);
     }
 
     // Get a list of edges that show the shortest route from the source location to the location given
-    public LinkedList<Edge <Integer, Transport>> getPathFromDetective(int detectiveLocation)
+    public LinkedList<Edge <Integer, Transport>> getPathFrom(int location)
     {
         calculateShortestPathFromSource();
-        return pathNodes.get(detectiveLocation);
+        return pathNodes.get(location);
     }
 
 
