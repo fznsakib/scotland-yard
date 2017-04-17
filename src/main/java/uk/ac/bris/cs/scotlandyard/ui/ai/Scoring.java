@@ -27,7 +27,7 @@ public class Scoring {
     public int totalScore()
     {
         totalScore = freedomScore() + distanceScore() + ticketScore();
-        System.out.println("Freedom: " + freedomScore() + " Distance: " + distanceScore() + " Ticket: " + ticketScore() + " = " + totalScore);
+        //System.out.println("Freedom: " + freedomScore() + " Distance: " + distanceScore() + " Ticket: " + ticketScore() + " = " + totalScore);
         return totalScore;
     }
 
@@ -60,7 +60,7 @@ public class Scoring {
     }
 
     // Provides a score for a move depending on how far away all the detectives are from a location.
-    private int distanceScore()
+    public int distanceScore()
     {
         int distanceScore = 0;
 

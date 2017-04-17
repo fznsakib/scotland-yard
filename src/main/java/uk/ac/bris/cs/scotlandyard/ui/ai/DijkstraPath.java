@@ -12,10 +12,12 @@ public class DijkstraPath {
     private Set<Integer> settledNodes = new HashSet<>();
     private HashMap<Integer, LinkedList<Edge<Integer, Transport>>> pathNodes = new HashMap<>();
     private ScotlandYardView view;
+    private int start;
 
     public DijkstraPath(int start, ScotlandYardView view) {
 
         this.view = view;
+        this.start = start;
 
         // Grab all nodes from current graph, and convert to nodes holding distance from source
         List<Node<Integer>> allNodes = view.getGraph().getNodes();
@@ -36,6 +38,7 @@ public class DijkstraPath {
 
     private Map<Integer, Integer> calculateShortestPathFromSource()
     {
+
         // Loop until no more nodes to evaluate
         while (unsettledNodes.size() != 0)
         {

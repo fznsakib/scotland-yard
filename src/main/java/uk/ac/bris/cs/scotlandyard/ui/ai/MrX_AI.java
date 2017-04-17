@@ -49,34 +49,35 @@ public class MrX_AI implements PlayerFactory {
 				if (move instanceof TicketMove) {
 					Scoring scoreObject = new Scoring(view, ((TicketMove) move).destination());
 					movesWithScores.put(move, scoreObject.totalScore());
+					System.out.println("Move: " + move + " distanceScore = " + scoreObject.distanceScore() + " totalScore = " + scoreObject.totalScore());
 				}
 				else if (move instanceof DoubleMove) {
 					Scoring scoreObject = new Scoring(view, ((DoubleMove) move).finalDestination());
 					movesWithScores.put(move, scoreObject.totalScore());
+					System.out.println("Move: " + move + " distanceScore = " + scoreObject.distanceScore() + " totalScore = " + scoreObject.totalScore());
 				}
 			}
 
 			// Create a map that has all the best scoring move for each transport
-			Map<Ticket, Set<Move>> bestTicketMoves = findBestTicketMoves(view, moves, movesWithScores);
+			Map<String, Set<Move>> bestTicketMoves = findBestTicketMoves(moves, movesWithScores);
 
 			System.out.println("Choosing from best possible moves: " + bestTicketMoves);
 
 			// Deduce a move from the list of best moves taking into account current game factors such as round,
 			// number of tickets left, etc
-			Move chosenMove = chooseFromBestMoves(bestTicketMoves);
+			Move chosenMove = chooseFromBestMoves(view, location, bestTicketMoves, movesWithScores);
 
 			System.out.println("Chosen move: " + chosenMove);
-
 
 			callback.accept(chosenMove);
 		}
 
-		private Map<Ticket, Set<Move>> findBestTicketMoves(ScotlandYardView view, Set<Move> moves, Map<Move, Integer> movesWithScores)
+		private Map<String, Set<Move>> findBestTicketMoves(Set<Move> moves, Map<Move, Integer> movesWithScores)
 		{
-			Ticket[] ticketTypes = {Taxi, Bus, Underground, Secret, Double};
-			Map<Ticket, Set<Move>> bestTicketMoves = new HashMap<>();
+			String[] ticketTypes = {"Regular", "Secret", "Double"};
+			Map<String, Set<Move>> bestTicketMoves = new HashMap<>();
 
-			for (Ticket ticket : ticketTypes)
+			for (String ticket : ticketTypes)
 			{
 				Set<Move> bestMoves = extractTicketMoves(moves, movesWithScores,  ticket);
 				bestTicketMoves.put(ticket, bestMoves);
@@ -84,12 +85,12 @@ public class MrX_AI implements PlayerFactory {
 			return bestTicketMoves;
 		}
 
-		private Move chooseFromBestMoves(Map<Ticket, Set<Move>> bestTicketMoves)
+		private Move chooseFromBestMoves(ScotlandYardView view, int location, Map<String, Set<Move>> bestTicketMoves, Map<Move, Integer> movesWithScores)
 		{
 			Set<Move> allMoves = new HashSet<>();
 
 			// Collecting all moves in one set
- 			for (Ticket ticket : bestTicketMoves.keySet())
+ 			for (String ticket : bestTicketMoves.keySet())
 			{
 				allMoves.addAll(bestTicketMoves.get(ticket));
 			}
@@ -97,18 +98,49 @@ public class MrX_AI implements PlayerFactory {
 			// If only one move with highest score, then choose that
 			if (allMoves.size() == 1)
 				return new ArrayList<>(allMoves).get(0);
-			
 
+ 			// Probability of choosing a secret move increases if the current round is a reveal round
+			double probSecretMove = 0.2;
+			if (view.getCurrentRound() != 0) {
+				if (view.isRevealRound())
+					probSecretMove = 0.7;
+			}
+
+			// Probability of a choosing a double move increases if distance score is performing low
+			// NOTE: AI considers a detective being 4 moves away as good enough reason to use a double move
+			double probDoubleMove = 0.2;
+			int currentDistanceScore = new Scoring(view, location).distanceScore();
+			if (currentDistanceScore < (4 * view.getPlayers().size()))
+				probDoubleMove = 0.6;
+
+			// Random double generated for probability
+			Random r = new Random();
+			double randomDouble = r.nextDouble();
+
+			if ((randomDouble < probSecretMove) && (!bestTicketMoves.get("Secret").isEmpty()))
+			{
+				return new ArrayList<>(bestTicketMoves.get("Secret")).get(r.nextInt(bestTicketMoves.get("Secret").size()));
+			}
+
+			randomDouble = r.nextDouble();
+			if ((randomDouble < probDoubleMove) && (!bestTicketMoves.get("Double").isEmpty()))
+			{
+				return new ArrayList<>(bestTicketMoves.get("Double")).get(r.nextInt(bestTicketMoves.get("Double").size()));
+			}
+			else
+			{
+				return new ArrayList<>(bestTicketMoves.get("Regular")).get(r.nextInt(bestTicketMoves.get("Regular").size()));
+			}
 		}
 
-		private Set<Move> extractTicketMoves(Set<Move> moves, Map<Move, Integer> movesWithScores, Ticket ticket)
+		private Set<Move> extractTicketMoves(Set<Move> moves, Map<Move, Integer> movesWithScores, String ticket)
 		{
 			int bestScore = 0;
 			Set<Move> bestMoves = new HashSet<>();
 			for (Move move : moves)
 			{
-				if (move instanceof TicketMove) {
-					if (((TicketMove) move).ticket().equals(ticket)) {
+				if ((move instanceof TicketMove) && (ticket.equals("Regular"))) {
+					if ((((TicketMove) move).ticket().equals(Taxi)) || ((TicketMove) move).ticket().equals(Bus) || ((TicketMove) move).ticket().equals(Underground)){
 						if ((movesWithScores.get(move) > bestScore)) {
 							bestMoves.clear();
 							bestScore = movesWithScores.get(move);
@@ -118,8 +150,8 @@ public class MrX_AI implements PlayerFactory {
 						}
 					}
 				}
-				else if (move instanceof DoubleMove){
-					if (Double.equals(ticket)) {
+				else if ((move instanceof TicketMove) && (ticket.equals("Secret"))) {
+					if (((TicketMove) move).ticket().equals(Secret)){
 						if ((movesWithScores.get(move) > bestScore)) {
 							bestMoves.clear();
 							bestScore = movesWithScores.get(move);
@@ -128,6 +160,15 @@ public class MrX_AI implements PlayerFactory {
 							bestMoves.add(move);
 						}
 					}
+				}
+				else if ((move instanceof DoubleMove) && (ticket.equals("Double"))){
+						if ((movesWithScores.get(move) > bestScore)) {
+							bestMoves.clear();
+							bestScore = movesWithScores.get(move);
+							bestMoves.add(move);
+						} else if (movesWithScores.get(move) == bestScore) {
+							bestMoves.add(move);
+						}
 				}
 			}
 			return bestMoves;
