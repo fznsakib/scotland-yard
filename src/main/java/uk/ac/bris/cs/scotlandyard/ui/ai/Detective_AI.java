@@ -23,7 +23,6 @@ public class Detective_AI implements PlayerFactory {
 
 		@Override
 		public void makeMove(ScotlandYardView view, int location, Set<Move> moves, Consumer<Move> callback) {
-			System.out.println("New round");
 
 			Map<Move, Integer> movesWithScores = new HashMap<>();
 			Random r = new Random();
@@ -53,11 +52,11 @@ public class Detective_AI implements PlayerFactory {
 			// Find moves with best score
 			Set<Move> bestTicketMoves = findBestTicketMoves(movesWithScores, moves);
 
-			System.out.println("Choosing from best possible moves: " + bestTicketMoves);
+			//System.out.println("Choosing from best possible moves: " + bestTicketMoves);
 
 			// Since all moves at this point have the same score, choose one at random
 			Move chosenMove = new ArrayList<>(bestTicketMoves).get(r.nextInt(bestTicketMoves.size()));
-			System.out.println("Chosen move: " + chosenMove + "at Round " + view.getCurrentRound());
+			//System.out.println("Chosen move: " + chosenMove + "at Round " + view.getCurrentRound());
 			callback.accept(chosenMove);
 		}
 

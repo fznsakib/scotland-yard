@@ -4,8 +4,6 @@ import uk.ac.bris.cs.gamekit.graph.*;
 import java.util.*;
 import uk.ac.bris.cs.scotlandyard.model.*;
 
-import static uk.ac.bris.cs.scotlandyard.model.Colour.Black;
-import static uk.ac.bris.cs.scotlandyard.model.Colour.Blue;
 import static uk.ac.bris.cs.scotlandyard.model.Transport.Bus;
 
 public class DijkstraPath {
@@ -37,7 +35,7 @@ public class DijkstraPath {
         this.unsettledNodes.add(start);
     }
 
-    private Map<Integer, Integer> calculateShortestPathFromSource()
+    private void calculateShortestPathFromSource()
     {
 
         // Loop until no more nodes to evaluate
@@ -64,7 +62,6 @@ public class DijkstraPath {
             // Current node now evaluated, add to settledNodes list
             settledNodes.add(currentNode);
         }
-        return distanceNodes;
     }
 
     private int getLowestDistanceNode()

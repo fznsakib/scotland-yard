@@ -1,16 +1,7 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
-import uk.ac.bris.cs.gamekit.graph.Edge;
-import uk.ac.bris.cs.scotlandyard.model.Colour;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYardView;
-import uk.ac.bris.cs.scotlandyard.model.Ticket;
-import uk.ac.bris.cs.scotlandyard.model.Transport;
 
-import java.util.*;
-
-/**
- * Created by Faizaan on 17/04/2017.
- */
 public abstract class Scoring {
 
     private int totalScore;
@@ -18,7 +9,7 @@ public abstract class Scoring {
     private DijkstraPath boardPath;
     private ScotlandYardView view;
 
-    protected Scoring(ScotlandYardView view, int destination)
+    Scoring(ScotlandYardView view, int destination)
     {
         this.totalScore = 0;
         this.destination = destination;

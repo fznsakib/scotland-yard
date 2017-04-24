@@ -9,10 +9,10 @@ public class MrXScoring extends Scoring {
 
     private int totalScore;
     private int destination;
-    private DijkstraPath boardPath;
+    public DijkstraPath boardPath;
     private ScotlandYardView view;
 
-    public MrXScoring(ScotlandYardView view, int destination)
+    MrXScoring(ScotlandYardView view, int destination)
     {
         super(view, destination);
         this.totalScore = 0;
@@ -21,14 +21,11 @@ public class MrXScoring extends Scoring {
         this.boardPath = new DijkstraPath(destination, view);
     }
 
-    // A scoring system to allow the AI to choose/prioritise the best moves available. The higher the score, the better
-
-    // Sums up all the individual scores for a move that are generated according to some parameters (i.e. distance from
-    // detectives, move eligibility of detectives to a certain location, contextual multipliers, etc)
     @Override
     public int totalScore()
     {
-        totalScore = freedomScore() + distanceScore() + ticketScore();
+        //totalScore = freedomScore() + distanceScore() + ticketScore() + edgeScore() + transportScore();
+        totalScore = distanceScore() + freedomScore() + transportScore() + ticketScore();
         //System.out.println("Freedom: " + freedomScore() + " Distance: " + distanceScore() + " Ticket: " + ticketScore() + " = " + totalScore);
         return totalScore;
     }
@@ -38,12 +35,11 @@ public class MrXScoring extends Scoring {
     {
         // The default or 'ideal' freedom score is the same as the number of detectives
         // This method traverses all the adjacent nodes, and for every detective found at a node, the score
-        // is subtracted by 1
+        // is subtracted by 4
 
-        int freedomScore = view.getPlayers().size() - 1;
+        int freedomScore = (view.getPlayers().size() - 1) * 2;
         Collection<Edge<Integer, Transport>> adjacentEdges;
         adjacentEdges = view.getGraph().getEdgesFrom(view.getGraph().getNode(destination));
-        //view.getGraph().getEdgesFrom(view.getGraph().getNode(currentNode))
 
         // Get detective locations
         Set<Integer> detectiveLocations = new HashSet<>();
@@ -55,13 +51,12 @@ public class MrXScoring extends Scoring {
         for (Edge<Integer, Transport> edge : adjacentEdges)
         {
             if (detectiveLocations.contains(edge.destination().value()))
-                freedomScore--;
+                freedomScore = freedomScore - 4;
         }
 
         return freedomScore;
     }
 
-    // Provides a score for a move depending on how far away all the detectives are from a location.
     @Override
     public int distanceScore()
     {
@@ -72,14 +67,12 @@ public class MrXScoring extends Scoring {
         {
             int detectiveLocation = view.getPlayerLocation(view.getPlayers().get(i));
             int distanceFromDetective = boardPath.getDistanceFrom(detectiveLocation);
-            distanceScore = distanceScore + distanceFromDetective;
-            //System.out.println("Distance from Detective " + view.getPlayers().get(i) + ": " + distanceFromDetective);
+            distanceScore = distanceScore + (2 * distanceFromDetective);
         }
 
         return distanceScore;
     }
 
-    // Produces a score based on how likely it is a detective can reach a location by checking their tickets
     @Override
     public int ticketScore()
     {
@@ -93,6 +86,27 @@ public class MrXScoring extends Scoring {
             }
         }
         return ticketScore;
+    }
+
+    // Produces a score by seeing how many modes of transport there is from that node
+    private int transportScore()
+    {
+        int transportScore = 0;
+        Collection<Edge<Integer, Transport>> adjacentEdges;
+        adjacentEdges = view.getGraph().getEdgesFrom(view.getGraph().getNode(destination));
+        ArrayList<Transport> transportAvailable = new ArrayList<>();
+
+        for (Edge<Integer, Transport> edge : adjacentEdges)
+        {
+            transportAvailable.add(edge.data());
+        }
+
+        if (transportAvailable.contains(Transport.Bus))
+            transportScore = transportScore + 1;
+        if (transportAvailable.contains(Transport.Underground))
+            transportScore = transportScore + 2;
+
+        return transportScore;
     }
 
     private boolean hasEnoughTickets(Colour playerColour)

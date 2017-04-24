@@ -7,7 +7,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.*;
-import uk.ac.bris.cs.gamekit.graph.Edge;
+
 import uk.ac.bris.cs.scotlandyard.ai.AIPool;
 import uk.ac.bris.cs.scotlandyard.ai.ManagedAI;
 import uk.ac.bris.cs.scotlandyard.ai.PlayerFactory;
@@ -16,10 +16,6 @@ import uk.ac.bris.cs.scotlandyard.model.Colour;
 import uk.ac.bris.cs.scotlandyard.model.Move;
 import uk.ac.bris.cs.scotlandyard.model.Player;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYardView;
-import uk.ac.bris.cs.scotlandyard.model.Transport;
-import uk.ac.bris.cs.scotlandyard.model.Ticket;
-
-
 
 import uk.ac.bris.cs.scotlandyard.model.*;
 
@@ -49,28 +45,79 @@ public class MrX_AI implements PlayerFactory {
 				if (move instanceof TicketMove) {
 					MrXScoring scoreObject = new MrXScoring(view, ((TicketMove) move).destination());
 					movesWithScores.put(move, scoreObject.totalScore());
-					//System.out.println("Move: " + move + " distanceScore = " + scoreObject.distanceScore() + " totalScore = " + scoreObject.totalScore());
 				}
 				else if (move instanceof DoubleMove) {
 					MrXScoring scoreObject = new MrXScoring(view, ((DoubleMove) move).finalDestination());
 					movesWithScores.put(move, scoreObject.totalScore());
-					//System.out.println("Move: " + move + " distanceScore = " + scoreObject.distanceScore() + " totalScore = " + scoreObject.totalScore());
 				}
 			}
 
-			// Create a map that has all the best scoring move for each transport
-			Map<String, Set<Move>> bestTicketMoves = findBestTicketMoves(moves, movesWithScores);
+			int level = view.getRounds().size() - view.getCurrentRound();
+			int currentPlayer = 0;
+			int bestScore = minimax(view, level, currentPlayer);
 
-			//System.out.println("Choosing from best possible moves: " + bestTicketMoves);
+			// Create a map that has all the best scoring moves for each transport
+			Map<String, Set<Move>> bestTicketMoves = findBestTicketMoves(moves, movesWithScores);
 
 			// Deduce a move from the list of best moves taking into account current game factors such as round,
 			// number of tickets left, etc
 			Move chosenMove = chooseFromBestMoves(view, location, bestTicketMoves, movesWithScores);
 
-			//System.out.println("Chosen move: " + chosenMove);
-
 			callback.accept(chosenMove);
 		}
+
+		private int minimax(ScotlandYardView view, int level, int currentPlayer)
+		{
+			List<ScotlandYardPlayer> = createPlayers(view);
+
+			int currentMrXScore = new MrXScoring(view, view.getPlayerLocation(Colour.Black)).totalScore();
+			GameTreeNode gameTree = new GameTreeNode(currentMrXScore);
+			Set<Move> validMoves = new HashSet<>();
+			List<Integer> validMoveScores = new ArrayList<>();
+
+			// Find valid moves and their scores depending on which player it is
+			if (view.getPlayers().get(currentPlayer % view.getPlayers().size()).isMrX())
+			{
+				Set<Move> validMoves = new MrXValidMovesFinder();
+			}
+			else
+			{
+				Set<Move> validMoves = new DetectiveValidMovesFinder();
+			}
+
+			if (view.isGameOver() || level == 0)
+			{
+				return currentMrXScore;
+			}
+			for (int score : validMoveScores)
+			{
+				gameTree.addChild(validMoveScores.get(score));
+			}
+
+			if (view.getPlayers().get(currentPlayer % view.getPlayers().size()).isMrX()){
+				int bestScore = -Integer.MAX_VALUE;
+				for (int i = 0; i < gameTree.getChildCount(); i ++)
+				{
+					int score = minimax(view, level - 1, currentPlayer + 1);
+					if (score > bestScore) bestScore = score;
+				}
+				return bestScore;
+			}
+			else
+			{
+				int bestScore = Integer.MAX_VALUE;
+				for (int i = 0; i < gameTree.getChildCount(); i++)
+				{
+					int score = minimax(view, level - 1, currentPlayer + 1);
+					if (score < bestScore) bestScore = score;
+				}
+				return bestScore;
+			}
+		}
+
+		private List<ScotlandYardPlayer> createPlayers(ScotlandYardView view) {
+		}
+
 
 		private Map<String, Set<Move>> findBestTicketMoves(Set<Move> moves, Map<Move, Integer> movesWithScores)
 		{
@@ -117,24 +164,22 @@ public class MrX_AI implements PlayerFactory {
 			Random r = new Random();
 			double randomDouble = r.nextDouble();
 
-			if ((randomDouble < probSecretMove) && (!bestTicketMoves.get("Secret").isEmpty()))
-			{
+			if ((randomDouble < probSecretMove) && (!bestTicketMoves.get("Secret").isEmpty())) {
 				return new ArrayList<>(bestTicketMoves.get("Secret")).get(r.nextInt(bestTicketMoves.get("Secret").size()));
 			}
 
 			randomDouble = r.nextDouble();
-			if ((randomDouble < probDoubleMove) && (!bestTicketMoves.get("Double").isEmpty()))
-			{
+			if ((randomDouble < probDoubleMove) && (!bestTicketMoves.get("Double").isEmpty())) {
 				return new ArrayList<>(bestTicketMoves.get("Double")).get(r.nextInt(bestTicketMoves.get("Double").size()));
 			}
-			else if (!bestTicketMoves.get("Regular").isEmpty())
-			{
+
+			else if (!bestTicketMoves.get("Regular").isEmpty()) {
 				return new ArrayList<>(bestTicketMoves.get("Regular")).get(r.nextInt(bestTicketMoves.get("Regular").size()));
 			}
-			else
-			{
+
+			else {
 				randomDouble = r.nextDouble();
-				if (randomDouble < 0.5 && (!bestTicketMoves.get("Double").isEmpty()))
+				if (randomDouble < 0.5 && (!bestTicketMoves.get("Secret").isEmpty()))
 					return new ArrayList<>(bestTicketMoves.get("Secret")).get(r.nextInt(bestTicketMoves.get("Secret").size()));
 				else
 					return new ArrayList<>(bestTicketMoves.get("Double")).get(r.nextInt(bestTicketMoves.get("Double").size()));
