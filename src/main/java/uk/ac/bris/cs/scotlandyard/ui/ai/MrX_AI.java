@@ -35,7 +35,7 @@ public class MrX_AI implements PlayerFactory {
 
 			Map<Move, Integer> movesWithScores = new HashMap<>();
 			List<ScotlandYardPlayer> players = createPlayers(view, location, null, 0, null);
-			GameTreeNode<GameConfig> gameTree = new GameTreeNode<>(new GameConfig(view, players));
+			GameTreeNode<GameConfig> gameTree = new GameTreeNode<>(new GameConfig(view, players, null));
 
 			// Add a score to an array for each move possible
 			for (Move move : moves)
@@ -50,10 +50,9 @@ public class MrX_AI implements PlayerFactory {
 				}
 			}
 
-			int level = view.getRounds().size() - view.getCurrentRound();
-			int currentPlayer = 0;
 			//List<ScotlandYardPlayer> players = createPlayers(view);
-			int bestScore = minimax(view, players, level, currentPlayer, gameTree);
+			int bestScore = minimax(view, players, 1, 0, gameTree);
+			System.out.println("RESULT! Best Score = " + bestScore);
 
 			// Create a map that has all the best scoring moves for each transport
 			//Map<String, Set<Move>> bestTicketMoves = findBestTicketMoves(moves, movesWithScores, bestScore);
@@ -74,11 +73,12 @@ public class MrX_AI implements PlayerFactory {
 			callback.accept(chosenMove);
 		}
 
-		private int minimax(ScotlandYardView view, List<ScotlandYardPlayer> players, int level, int currentPlayer, GameTreeNode<GameConfig> gameTree)
+		private int minimax(ScotlandYardView view, List<ScotlandYardPlayer> players, int level, int currentPlayer, GameTreeNode<GameConfig> currentNode)
 		{
 
-			GameTreeNode<GameConfig> currentGameTreeNode = gameTree;
 			Set<Move> nextMoves;
+			List<ScotlandYardPlayer> playersAfterMove = new ArrayList<>();
+
 
 			// Find valid moves and their scores depending on which player it is
 			if (players.get(currentPlayer).isMrX()) {
@@ -88,58 +88,80 @@ public class MrX_AI implements PlayerFactory {
 				nextMoves = new DetectiveValidMovesFinder(view, players.get(currentPlayer)).findValidMoves();
 			}
 
-			int bestScore = (currentPlayer == 0) ? Integer.MAX_VALUE : Integer.MIN_VALUE;
+			int bestScore = (currentPlayer == 0) ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 			int currentScore;
+			int roundsToNextRevealRound = 0;
 
-			if (nextMoves.isEmpty() || level == 0) { // Terminating condition (if no more moves or rounds left)
-				//System.out.println("MADE IT!!");
-				bestScore = evaluate();
-				return bestScore;
+			for (int i = view.getCurrentRound(); i < view.getRounds().size(); i ++)
+			{
+				if (view.getRounds().get(i))
+				{
+					roundsToNextRevealRound =  (i + 1) - view.getCurrentRound();
+					break;
+				}
 			}
 
-			System.out.println(nextMoves);
+			//roundsToNextRevealRound = 3;
+			System.out.println(roundsToNextRevealRound);
 
-			for (Move move : nextMoves)
-			{
-				System.out.println("LEVEL : " + level);
+			if (nextMoves.isEmpty() || level == roundsToNextRevealRound) { // Terminating condition (if round being evaluated is a reveal round)
+				//System.out.println("minimax is returning: " + currentNode.getData().getMrXScore() + " when current player is : " + currentPlayer);
+				return currentNode.getData().getMrXScore();
+			}
 
-				List<ScotlandYardPlayer> playersAfterMove = new ArrayList<>();
+			for (Move move : nextMoves) {
+
 				if (move instanceof TicketMove) {
 					playersAfterMove = createPlayers(view, players.get(0).location(), players.get(currentPlayer).colour(), ((TicketMove) move).destination(), ((TicketMove) move).ticket());
-					GameConfig newConfig = new GameConfig(view, playersAfterMove);
-					currentGameTreeNode = gameTree.addChild(newConfig);
-				}
-				else if (move instanceof DoubleMove) {
+				} else if (move instanceof DoubleMove) {
 					playersAfterMove = createPlayers(view, players.get(0).location(), players.get(currentPlayer).colour(), ((DoubleMove) move).finalDestination(), Double);
-					GameConfig newConfig = new GameConfig(view, playersAfterMove);
-					currentGameTreeNode = gameTree.addChild(newConfig);
 				}
 
-				if (currentPlayer == 0){ // If MrX's turn on the tree
-					//bestScore = -Integer.MAX_VALUE;
-					currentScore = minimax(view, playersAfterMove, level, currentPlayer + 1, currentGameTreeNode);
-					if (currentScore > bestScore) bestScore = currentScore;
-					return bestScore;
-				}
-				else
+				GameConfig newConfig = new GameConfig(view, playersAfterMove, move);
+				currentNode.addChild(newConfig);
+			}
+
+			if (currentPlayer == 0)
+			{
+				for (GameTreeNode<GameConfig> childNode : currentNode.children())
 				{
-					//bestScore = Integer.MAX_VALUE;
-					if (currentPlayer == (players.size() - 1))
-						currentScore = minimax(view, players, level - 1, 0, currentGameTreeNode);
+					List<ScotlandYardPlayer> currentPlayerConfig = childNode.getData().getPlayers();
+					Move currentMove = childNode.getData().getMove();
+
+					if (currentMove instanceof TicketMove)
+						playersAfterMove = createPlayers(view, currentPlayerConfig.get(0).location(), currentPlayerConfig.get(currentPlayer).colour(), ((TicketMove) currentMove).destination(), ((TicketMove) currentMove).ticket());
 					else
-						currentScore = minimax(view, players, level , currentPlayer + 1, currentGameTreeNode);
+						playersAfterMove = createPlayers(view, currentPlayerConfig.get(0).location(), currentPlayerConfig.get(currentPlayer).colour(), ((DoubleMove) currentMove).finalDestination(), Double);
+
+					currentScore = minimax(view, playersAfterMove, level, currentPlayer + 1, childNode);
+					if (currentScore > bestScore) bestScore = currentScore;
+					//System.out.println("Level : " + level + " Score : " + bestScore + " Player: " + currentPlayer);
+				}
+				return bestScore;
+			}
+			else
+			{
+				for (GameTreeNode<GameConfig> childNode : currentNode.children())
+				{
+					List<ScotlandYardPlayer> currentPlayerConfig = childNode.getData().getPlayers();
+					Move currentMove = childNode.getData().getMove();
+
+					playersAfterMove = createPlayers(view, currentPlayerConfig.get(0).location(), currentPlayerConfig.get(currentPlayer).colour(), ((TicketMove) currentMove).destination(), ((TicketMove) currentMove).ticket());
+
+					if (currentPlayer == (players.size() - 1))
+						currentScore = minimax(view, playersAfterMove, level + 1, 0, childNode);
+					else
+						currentScore = minimax(view, playersAfterMove, level, currentPlayer + 1, childNode);
 
 					if (currentScore < bestScore) bestScore = currentScore;
-					return bestScore;
+					//System.out.println("Level : " + level + " Score : " + bestScore + " Player: " + currentPlayer);
 				}
+				return bestScore;
 			}
-			return bestScore;
 		}
 
-		private int evaluate() {
-			System.out.println("MADE IT!!!");
-			return 0;
-		}
+
+
 
 		private List<ScotlandYardPlayer> createPlayers(ScotlandYardView view, int MrXLocation, Colour colourToMove, int colourDestination, Ticket colourTicket) {
 			List<ScotlandYardPlayer> players = new ArrayList<>();

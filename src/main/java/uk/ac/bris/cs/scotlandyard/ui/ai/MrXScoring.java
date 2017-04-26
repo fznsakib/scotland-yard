@@ -39,7 +39,7 @@ public class MrXScoring extends Scoring {
         // This method traverses all the adjacent nodes, and for every detective found at a node, the score
         // is subtracted by 4
 
-        int freedomScore = (players.size() - 1) * 2;
+        int freedomScore = (players.size() - 1) * 4;
         Collection<Edge<Integer, Transport>> adjacentEdges;
         adjacentEdges = view.getGraph().getEdgesFrom(view.getGraph().getNode(destination));
 
