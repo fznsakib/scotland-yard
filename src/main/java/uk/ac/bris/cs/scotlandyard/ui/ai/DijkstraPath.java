@@ -14,7 +14,7 @@ public class DijkstraPath {
     private HashMap<Integer, LinkedList<Edge<Integer, Transport>>> pathNodes = new HashMap<>();
     private ScotlandYardView view;
 
-    public DijkstraPath(int start, ScotlandYardView view) {
+    DijkstraPath(int start, ScotlandYardView view) {
 
         this.view = view;
 
@@ -68,7 +68,7 @@ public class DijkstraPath {
     {
         int lowestDistance = Integer.MAX_VALUE;
         int lowestDistanceNode = 0;
-
+        //System.out.println(unsettledNodes);
         // Find the next node which is closest to any of the unsettled nodes
         for (Integer node : unsettledNodes)
         {

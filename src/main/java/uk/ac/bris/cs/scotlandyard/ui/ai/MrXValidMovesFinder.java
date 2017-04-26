@@ -27,7 +27,8 @@ public class MrXValidMovesFinder extends ValidMovesFinder {
     @Override
     public Set<Move> findValidMoves() {
         // Logic for valid moves for MrX
-        MrXMoves = addTickets(view.getPlayerLocation(Black));
+        //System.out.println(view.getPlayerLocation(Black));
+        MrXMoves = addTickets(currentPlayer.location());
 
         // Create copy of MrXMoves so that 'ConcurrentModificationException' is avoided. i.e. adding
         // elements while iterating through it

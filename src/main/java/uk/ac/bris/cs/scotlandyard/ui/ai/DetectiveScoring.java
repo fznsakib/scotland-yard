@@ -1,7 +1,10 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
 import uk.ac.bris.cs.scotlandyard.model.Colour;
+import uk.ac.bris.cs.scotlandyard.model.ScotlandYardPlayer;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYardView;
+
+import java.util.List;
 
 
 public class DetectiveScoring extends Scoring {
@@ -9,10 +12,12 @@ public class DetectiveScoring extends Scoring {
     private int totalScore;
     private DijkstraPath boardPath;
     private ScotlandYardView view;
+    private List<ScotlandYardPlayer> players;
 
-    public DetectiveScoring(ScotlandYardView view, int destination)
+
+    public DetectiveScoring(ScotlandYardView view, int destination, List<ScotlandYardPlayer> players)
     {
-        super(view, destination);
+        super(view, destination, players);
         this.totalScore = 0;
         this.view = view;
         this.boardPath = new DijkstraPath(destination, view);

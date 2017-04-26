@@ -9,23 +9,25 @@ public class MrXScoring extends Scoring {
 
     private int totalScore;
     private int destination;
-    public DijkstraPath boardPath;
+    private DijkstraPath boardPath;
     private ScotlandYardView view;
+    private List<ScotlandYardPlayer> players;
 
-    MrXScoring(ScotlandYardView view, int destination)
+    MrXScoring(ScotlandYardView view, int destination, List<ScotlandYardPlayer> players)
     {
-        super(view, destination);
+        super(view, destination, players);
         this.totalScore = 0;
         this.destination = destination;
         this.view = view;
         this.boardPath = new DijkstraPath(destination, view);
+        this.players = players;
     }
 
     @Override
     public int totalScore()
     {
         //totalScore = freedomScore() + distanceScore() + ticketScore() + edgeScore() + transportScore();
-        totalScore = distanceScore() + freedomScore() + transportScore() + ticketScore();
+        totalScore = distanceScore() + freedomScore() + transportScore();
         //System.out.println("Freedom: " + freedomScore() + " Distance: " + distanceScore() + " Ticket: " + ticketScore() + " = " + totalScore);
         return totalScore;
     }
@@ -37,7 +39,7 @@ public class MrXScoring extends Scoring {
         // This method traverses all the adjacent nodes, and for every detective found at a node, the score
         // is subtracted by 4
 
-        int freedomScore = (view.getPlayers().size() - 1) * 2;
+        int freedomScore = (players.size() - 1) * 2;
         Collection<Edge<Integer, Transport>> adjacentEdges;
         adjacentEdges = view.getGraph().getEdgesFrom(view.getGraph().getNode(destination));
 
@@ -45,7 +47,8 @@ public class MrXScoring extends Scoring {
         Set<Integer> detectiveLocations = new HashSet<>();
         for (int i = 1; i < view.getPlayers().size(); i ++)
         {
-            detectiveLocations.add(view.getPlayerLocation(view.getPlayers().get(i)));
+            detectiveLocations.add(players.get(i).location());
+            //detectiveLocations.add(view.getPlayerLocation(view.getPlayers().get(i)));
         }
 
         for (Edge<Integer, Transport> edge : adjacentEdges)
@@ -63,9 +66,9 @@ public class MrXScoring extends Scoring {
         int distanceScore = 0;
 
         // Cycles through each detective to see how far away they are from the chosen adjacent node
-        for (int i = 1; i < view.getPlayers().size(); i ++)
+        for (int i = 1; i < players.size(); i ++)
         {
-            int detectiveLocation = view.getPlayerLocation(view.getPlayers().get(i));
+            int detectiveLocation = players.get(i).location();
             int distanceFromDetective = boardPath.getDistanceFrom(detectiveLocation);
             distanceScore = distanceScore + (2 * distanceFromDetective);
         }
@@ -78,9 +81,9 @@ public class MrXScoring extends Scoring {
     {
         int ticketScore = 0;
 
-        for (int i = 1; i < view.getPlayers().size(); i ++)
+        for (int i = 1; i < players.size(); i ++)
         {
-            if (!hasEnoughTickets(view.getPlayers().get(i)))
+            if (!hasEnoughTickets(players.get(i).colour()))
             {
                 ticketScore = ticketScore + 3;
             }

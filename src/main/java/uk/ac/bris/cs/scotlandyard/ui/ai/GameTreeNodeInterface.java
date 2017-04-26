@@ -2,25 +2,25 @@ package uk.ac.bris.cs.scotlandyard.ui.ai;
 
 import java.util.List;
 
-public interface GameTreeNodeInterface {
+public interface GameTreeNodeInterface<T> {
 
-    GameTreeNode addChild(int child);
+    //void addChild(T child);
 
-    void setData(int newData);
+    //void setData(T newData);
 
-    int getData();
+    //T getData();
 
-    GameTreeNode getChildAt(int childIndex);
+    GameTreeNode<T> getChildAt(int childIndex);
 
     int getChildCount();
 
-    GameTreeNode getParent();
+    GameTreeNode<T> getParent();
 
-    int getIndex(GameTreeNode nodeToFind);
+    int getIndex(GameTreeNode<T> nodeToFind);
 
     boolean getAllowsChildren();
 
     boolean isLeaf();
 
-    List<GameTreeNode> children();
+    List<GameTreeNode<T>> children();
 }

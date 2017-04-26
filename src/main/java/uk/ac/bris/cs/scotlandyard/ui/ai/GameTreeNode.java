@@ -4,27 +4,27 @@ import java.util.LinkedList;
 import java.util.List;
 
 
-public class GameTreeNode implements GameTreeNodeInterface {
+public class GameTreeNode<GameConfig> {
 
-    private int data;
+    private GameConfig data;
     public GameTreeNode parent;
-    private List<GameTreeNode> children;
+    private List<GameTreeNode<GameConfig>> children;
 
-    GameTreeNode(int data) {
+    GameTreeNode(GameConfig data) {
         this.data = data;
         this.children = new LinkedList<>();
     }
 
-    public void setData(int newData){
+    public void setData(GameConfig newData){
         this.data = newData;
     }
 
-    public int getData(){
+    public GameConfig getData(){
         return data;
     }
 
-    public GameTreeNode addChild(int child) {
-        GameTreeNode childNode = new GameTreeNode(child);
+    public GameTreeNode<GameConfig> addChild(GameConfig child) {
+        GameTreeNode childNode = new GameTreeNode<>(child);
         childNode.parent = this;
         children.add(childNode);
         return childNode;
@@ -59,7 +59,7 @@ public class GameTreeNode implements GameTreeNodeInterface {
         return (children.size() == 0);
     }
 
-    public List<GameTreeNode> children() {
+    public List<GameTreeNode<GameConfig>> children() {
         return children;
     }
 }

@@ -1,6 +1,9 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
+import uk.ac.bris.cs.scotlandyard.model.ScotlandYardPlayer;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYardView;
+
+import java.util.List;
 
 public abstract class Scoring {
 
@@ -8,13 +11,15 @@ public abstract class Scoring {
     private int destination;
     private DijkstraPath boardPath;
     private ScotlandYardView view;
+    private List<ScotlandYardPlayer> players;
 
-    Scoring(ScotlandYardView view, int destination)
+    Scoring(ScotlandYardView view, int destination, List<ScotlandYardPlayer> players)
     {
         this.totalScore = 0;
         this.destination = destination;
         this.view = view;
         this.boardPath = new DijkstraPath(destination, view);
+        this.players = players;
     }
 
     // A scoring system to allow the AI to choose/prioritise the best moves available. The higher the score, the better
