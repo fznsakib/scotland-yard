@@ -26,9 +26,8 @@ public class MrXScoring extends Scoring {
     @Override
     public int totalScore()
     {
-        //totalScore = freedomScore() + distanceScore() + ticketScore() + edgeScore() + transportScore();
+        //totalScore = distanceScore() + freedomScore() + transportScore();
         totalScore = distanceScore() + freedomScore() + transportScore();
-        //System.out.println("Freedom: " + freedomScore() + " Distance: " + distanceScore() + " Ticket: " + ticketScore() + " = " + totalScore);
         return totalScore;
     }
 

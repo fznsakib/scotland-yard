@@ -58,7 +58,7 @@ public class Detective_AI implements PlayerFactory {
 
 			// Since all moves at this point have the same score, choose one at random
 			Move chosenMove = new ArrayList<>(bestTicketMoves).get(r.nextInt(bestTicketMoves.size()));
-			//System.out.println("Chosen move: " + chosenMove + "at Round " + view.getCurrentRound());
+
 			callback.accept(chosenMove);
 		}
 

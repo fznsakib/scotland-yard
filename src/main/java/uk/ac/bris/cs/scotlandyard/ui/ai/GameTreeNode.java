@@ -38,7 +38,7 @@ public class GameTreeNode<GameConfig> {
         return children.size();
     }
 
-    public GameTreeNode getParent() {
+    public GameTreeNode<GameConfig> getParent() {
         return parent;
     }
 

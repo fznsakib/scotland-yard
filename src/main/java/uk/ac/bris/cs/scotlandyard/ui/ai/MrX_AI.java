@@ -30,6 +30,9 @@ public class MrX_AI implements PlayerFactory {
 	// Sample player that selects a move
 	private static class MyPlayer implements Player {
 
+		GameTreeNode<GameConfig> bestNode;
+		int nodeTotal = 0;
+
 		@Override
 		public void makeMove(ScotlandYardView view, int location, Set<Move> moves, Consumer<Move> callback) {
 
@@ -51,29 +54,33 @@ public class MrX_AI implements PlayerFactory {
 			}
 
 			//List<ScotlandYardPlayer> players = createPlayers(view);
-			int bestScore = minimax(view, players, 1, 0, gameTree);
+			int bestScore = minimax(view, players, 0, 0, gameTree, Integer.MIN_VALUE, Integer.MAX_VALUE);
 			System.out.println("RESULT! Best Score = " + bestScore);
 
-			// Create a map that has all the best scoring moves for each transport
-			//Map<String, Set<Move>> bestTicketMoves = findBestTicketMoves(moves, movesWithScores, bestScore);
-			Set<Move> bestMoves = new HashSet<>();
-			for (Move move : moves)
-			{
-				if (movesWithScores.get(move) == bestScore)
-					bestMoves.add(move);
+			while (bestNode.getParent().getParent() != null) {
+					bestNode = bestNode.getParent();
 			}
 
-			// Deduce a move from the list of best moves taking into account current game factors such as round,
-			// number of tickets left, etc
-			// Move chosenMove = chooseFromBestMoves(view, location, bestTicketMoves, players);
+			Move chosenMove = (bestNode.getData().getMove());
+
+			double probSecretMove = 0.2;
+			if (view.getCurrentRound() != 0) {
+				if (view.isRevealRound())
+					probSecretMove = 0.7;
+			}
 
 			Random r = new Random();
-			Move chosenMove = new ArrayList<>(bestMoves).get(r.nextInt(bestMoves.size()));
+			double randomDouble = r.nextDouble();
+
+			if (randomDouble < probSecretMove)
+			{
+				chosenMove = new TicketMove(Colour.Black, Secret, ((TicketMove) chosenMove).destination());
+			}
 
 			callback.accept(chosenMove);
 		}
 
-		private int minimax(ScotlandYardView view, List<GameTreePlayer> players, int level, int currentPlayer, GameTreeNode<GameConfig> currentNode)
+		private int minimax(ScotlandYardView view, List<GameTreePlayer> players, int level, int currentPlayer, GameTreeNode<GameConfig> currentNode, int alpha, int beta)
 		{
 
 			Set<Move> nextMoves;
@@ -88,42 +95,36 @@ public class MrX_AI implements PlayerFactory {
 				nextMoves = new DetectiveValidMovesFinder(view, players.get(currentPlayer)).findValidMoves();
 			}
 
-			int bestScore = (currentPlayer == 0) ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+			//int bestScore = (currentPlayer == 0) ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 			int currentScore;
-			int roundsToNextRevealRound = 0;
 
-			for (int i = view.getCurrentRound(); i < view.getRounds().size(); i ++)
-			{
-				if (view.getRounds().get(i))
-				{
-					roundsToNextRevealRound =  (i + 1) - view.getCurrentRound();
-					break;
-				}
-			}
-
-			//roundsToNextRevealRound = 3;
-			System.out.println(roundsToNextRevealRound);
-
-			if (nextMoves.isEmpty() || level == roundsToNextRevealRound) { // Terminating condition (if round being evaluated is a reveal round)
+			if (nextMoves.isEmpty() || level == 3) { // Terminating condition (if round being evaluated is a reveal round)
 				//System.out.println("minimax is returning: " + currentNode.getData().getMrXScore() + " when current player is : " + currentPlayer);
+				bestNode = currentNode;
 				return currentNode.getData().getMrXScore();
 			}
+
+			//nodeTotal = 0;
+			//System.out.println(nextMoves.size());
 
 			for (Move move : nextMoves) {
 
 				if (move instanceof TicketMove) {
-					playersAfterMove = createPlayers(view, players.get(0).location(), players.get(currentPlayer).colour(), ((TicketMove) move).destination(), ((TicketMove) move).ticket());
+					if (!((TicketMove) move).ticket().equals(Secret)) {
+						playersAfterMove = createPlayers(view, players.get(0).location(), players.get(currentPlayer).colour(), ((TicketMove) move).destination(), ((TicketMove) move).ticket());
+						GameConfig newConfig = new GameConfig(view, playersAfterMove, move);
+						currentNode.addChild(newConfig);
+						//nodeTotal = nodeTotal + 1;
+					}
+				}
+				else if (move instanceof DoubleMove){
+					playersAfterMove = createPlayers(view, players.get(0).location(), players.get(currentPlayer).colour(), ((DoubleMove) move).finalDestination(), Double);
 					GameConfig newConfig = new GameConfig(view, playersAfterMove, move);
 					currentNode.addChild(newConfig);
 				}
-
-				//else if (move instanceof DoubleMove)
-				//	playersAfterMove = createPlayers(view, players.get(0).location(), players.get(currentPlayer).colour(), ((DoubleMove) move).finalDestination(), Double);
-
-
-				/*GameConfig newConfig = new GameConfig(view, playersAfterMove, move);
-				currentNode.addChild(newConfig);*/
 			}
+
+			//System.out.println("Player : " + currentPlayer + " node total: " + nodeTotal);
 
 			if (currentPlayer == 0)
 			{
@@ -137,11 +138,12 @@ public class MrX_AI implements PlayerFactory {
 					else
 						playersAfterMove = createPlayers(view, currentPlayerConfig.get(0).location(), currentPlayerConfig.get(currentPlayer).colour(), ((DoubleMove) currentMove).finalDestination(), Double);
 
-					currentScore = minimax(view, playersAfterMove, level, currentPlayer + 1, childNode);
-					if (currentScore > bestScore) bestScore = currentScore;
+					currentScore = minimax(view, playersAfterMove, level, currentPlayer + 1, childNode, alpha, beta);
+					if (currentScore > alpha) alpha = currentScore;
+					if (alpha <= beta) break;
 					//System.out.println("Level : " + level + " Score : " + bestScore + " Player: " + currentPlayer);
 				}
-				return bestScore;
+				return alpha;
 			}
 			else
 			{
@@ -153,14 +155,14 @@ public class MrX_AI implements PlayerFactory {
 					playersAfterMove = createPlayers(view, currentPlayerConfig.get(0).location(), currentPlayerConfig.get(currentPlayer).colour(), ((TicketMove) currentMove).destination(), ((TicketMove) currentMove).ticket());
 
 					if (currentPlayer == (players.size() - 1))
-						currentScore = minimax(view, playersAfterMove, level + 1, 0, childNode);
+						currentScore = minimax(view, playersAfterMove, level + 1, 0, childNode, alpha, beta);
 					else
-						currentScore = minimax(view, playersAfterMove, level, currentPlayer + 1, childNode);
+						currentScore = minimax(view, playersAfterMove, level, currentPlayer + 1, childNode, alpha, beta);
 
-					if (currentScore < bestScore) bestScore = currentScore;
-					//System.out.println("Level : " + level + " Score : " + bestScore + " Player: " + currentPlayer);
+					if (currentScore < beta) beta = currentScore;
+					if (alpha <= beta) break;
 				}
-				return bestScore;
+				return beta;
 			}
 		}
 
