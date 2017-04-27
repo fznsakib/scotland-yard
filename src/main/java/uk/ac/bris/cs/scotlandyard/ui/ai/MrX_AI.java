@@ -34,7 +34,7 @@ public class MrX_AI implements PlayerFactory {
 		public void makeMove(ScotlandYardView view, int location, Set<Move> moves, Consumer<Move> callback) {
 
 			Map<Move, Integer> movesWithScores = new HashMap<>();
-			List<ScotlandYardPlayer> players = createPlayers(view, location, null, 0, null);
+			List<GameTreePlayer> players = createPlayers(view, location, null, 0, null);
 			GameTreeNode<GameConfig> gameTree = new GameTreeNode<>(new GameConfig(view, players, null));
 
 			// Add a score to an array for each move possible
@@ -73,11 +73,11 @@ public class MrX_AI implements PlayerFactory {
 			callback.accept(chosenMove);
 		}
 
-		private int minimax(ScotlandYardView view, List<ScotlandYardPlayer> players, int level, int currentPlayer, GameTreeNode<GameConfig> currentNode)
+		private int minimax(ScotlandYardView view, List<GameTreePlayer> players, int level, int currentPlayer, GameTreeNode<GameConfig> currentNode)
 		{
 
 			Set<Move> nextMoves;
-			List<ScotlandYardPlayer> playersAfterMove = new ArrayList<>();
+			List<GameTreePlayer> playersAfterMove = new ArrayList<>();
 
 
 			// Find valid moves and their scores depending on which player it is
@@ -113,19 +113,23 @@ public class MrX_AI implements PlayerFactory {
 
 				if (move instanceof TicketMove) {
 					playersAfterMove = createPlayers(view, players.get(0).location(), players.get(currentPlayer).colour(), ((TicketMove) move).destination(), ((TicketMove) move).ticket());
-				} else if (move instanceof DoubleMove) {
-					playersAfterMove = createPlayers(view, players.get(0).location(), players.get(currentPlayer).colour(), ((DoubleMove) move).finalDestination(), Double);
+					GameConfig newConfig = new GameConfig(view, playersAfterMove, move);
+					currentNode.addChild(newConfig);
 				}
 
-				GameConfig newConfig = new GameConfig(view, playersAfterMove, move);
-				currentNode.addChild(newConfig);
+				//else if (move instanceof DoubleMove)
+				//	playersAfterMove = createPlayers(view, players.get(0).location(), players.get(currentPlayer).colour(), ((DoubleMove) move).finalDestination(), Double);
+
+
+				/*GameConfig newConfig = new GameConfig(view, playersAfterMove, move);
+				currentNode.addChild(newConfig);*/
 			}
 
 			if (currentPlayer == 0)
 			{
 				for (GameTreeNode<GameConfig> childNode : currentNode.children())
 				{
-					List<ScotlandYardPlayer> currentPlayerConfig = childNode.getData().getPlayers();
+					List<GameTreePlayer> currentPlayerConfig = childNode.getData().getPlayers();
 					Move currentMove = childNode.getData().getMove();
 
 					if (currentMove instanceof TicketMove)
@@ -143,7 +147,7 @@ public class MrX_AI implements PlayerFactory {
 			{
 				for (GameTreeNode<GameConfig> childNode : currentNode.children())
 				{
-					List<ScotlandYardPlayer> currentPlayerConfig = childNode.getData().getPlayers();
+					List<GameTreePlayer> currentPlayerConfig = childNode.getData().getPlayers();
 					Move currentMove = childNode.getData().getMove();
 
 					playersAfterMove = createPlayers(view, currentPlayerConfig.get(0).location(), currentPlayerConfig.get(currentPlayer).colour(), ((TicketMove) currentMove).destination(), ((TicketMove) currentMove).ticket());
@@ -161,10 +165,8 @@ public class MrX_AI implements PlayerFactory {
 		}
 
 
-
-
-		private List<ScotlandYardPlayer> createPlayers(ScotlandYardView view, int MrXLocation, Colour colourToMove, int colourDestination, Ticket colourTicket) {
-			List<ScotlandYardPlayer> players = new ArrayList<>();
+		private List<GameTreePlayer> createPlayers(ScotlandYardView view, int MrXLocation, Colour colourToMove, int colourDestination, Ticket colourTicket) {
+			List<GameTreePlayer> players = new ArrayList<>();
 
 			for (Colour colour : view.getPlayers())
 			{
@@ -174,14 +176,14 @@ public class MrX_AI implements PlayerFactory {
 				{
 					int currentTicket = playerTicketMap.get(colourTicket);
 					playerTicketMap.replace(colourTicket, currentTicket - 1);
-					players.add(new ScotlandYardPlayer((scotlandYardView, i1, set, consumer) -> {}, colour, colourDestination, playerTicketMap));
+					players.add(new GameTreePlayer(colour, colourDestination, playerTicketMap));
 				}
 
 				else if ((colour == Colour.Black) && (colourToMove != Colour.Black))
-					players.add(new ScotlandYardPlayer((scotlandYardView, i1, set, consumer) -> {}, colour, MrXLocation, playerTicketMap));
+					players.add(new GameTreePlayer(colour, MrXLocation, playerTicketMap));
 
 				else if ((colour != Colour.Black) && (colour != colourToMove))
-					players.add(new ScotlandYardPlayer((scotlandYardView, i1, set, consumer) -> {}, colour, view.getPlayerLocation(colour), playerTicketMap));
+					players.add(new GameTreePlayer(colour, view.getPlayerLocation(colour), playerTicketMap));
 			}
 			return players;
 		}
@@ -210,7 +212,7 @@ public class MrX_AI implements PlayerFactory {
 			return bestTicketMoves;
 		}
 
-		private Move chooseFromBestMoves(ScotlandYardView view, int location, Map<String, Set<Move>> bestTicketMoves, List<ScotlandYardPlayer> players)
+		private Move chooseFromBestMoves(ScotlandYardView view, int location, Map<String, Set<Move>> bestTicketMoves, List<GameTreePlayer> players)
 		{
 			Set<Move> allMoves = new HashSet<>();
 

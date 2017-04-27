@@ -11,9 +11,9 @@ public class MrXScoring extends Scoring {
     private int destination;
     private DijkstraPath boardPath;
     private ScotlandYardView view;
-    private List<ScotlandYardPlayer> players;
+    private List<GameTreePlayer> players;
 
-    MrXScoring(ScotlandYardView view, int destination, List<ScotlandYardPlayer> players)
+    MrXScoring(ScotlandYardView view, int destination, List<GameTreePlayer> players)
     {
         super(view, destination, players);
         this.totalScore = 0;

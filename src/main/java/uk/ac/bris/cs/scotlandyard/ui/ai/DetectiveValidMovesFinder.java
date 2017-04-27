@@ -15,7 +15,7 @@ public class DetectiveValidMovesFinder extends ValidMovesFinder {
     private Set<Move> detectiveMoves;
     private Collection<Edge<Integer, Transport>> allEdges;
 
-    DetectiveValidMovesFinder(ScotlandYardView view, ScotlandYardPlayer currentPlayer) {
+    DetectiveValidMovesFinder(ScotlandYardView view, GameTreePlayer currentPlayer) {
         super(view, currentPlayer);
         detectiveMoves = new HashSet<>();
         allEdges = view.getGraph().getEdgesFrom(view.getGraph().getNode(currentPlayer.location()));

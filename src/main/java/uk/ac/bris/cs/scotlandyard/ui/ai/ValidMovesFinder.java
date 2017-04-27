@@ -14,10 +14,10 @@ import static uk.ac.bris.cs.scotlandyard.model.Colour.Black;
 
 public abstract class ValidMovesFinder {
 
-    ScotlandYardPlayer currentPlayer;
+    GameTreePlayer currentPlayer;
     Collection<Node> playerLocations;
 
-    ValidMovesFinder(ScotlandYardView view, ScotlandYardPlayer currentPlayer) {
+    ValidMovesFinder(ScotlandYardView view, GameTreePlayer currentPlayer) {
         playerLocations = new ArrayList<>();
         this.currentPlayer = currentPlayer;
 

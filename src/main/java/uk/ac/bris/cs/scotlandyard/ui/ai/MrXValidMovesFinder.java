@@ -13,15 +13,11 @@ public class MrXValidMovesFinder extends ValidMovesFinder {
 
     private Set<Move> MrXMoves;
     private ScotlandYardView view;
-    private Collection<Edge<Integer, Transport>> allEdges;
 
-
-    MrXValidMovesFinder(ScotlandYardView view, ScotlandYardPlayer currentPlayer) {
+    MrXValidMovesFinder(ScotlandYardView view, GameTreePlayer currentPlayer) {
         super(view, currentPlayer);
         MrXMoves = new HashSet<>();
         this.view = view;
-        allEdges = new ArrayList<>();
-        allEdges = view.getGraph().getEdgesFrom(view.getGraph().getNode(currentPlayer.location()));
     }
 
     @Override

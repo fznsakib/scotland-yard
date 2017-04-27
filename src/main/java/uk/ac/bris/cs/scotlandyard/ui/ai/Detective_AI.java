@@ -27,7 +27,7 @@ public class Detective_AI implements PlayerFactory {
 			Map<Move, Integer> movesWithScores = new HashMap<>();
 			Random r = new Random();
 			PassMove passmove = new PassMove(view.getCurrentPlayer());
-			List<ScotlandYardPlayer> players = createPlayers(view);
+			List<GameTreePlayer> players = createPlayers(view);
 
 
 			// If the only move available is a pass move then select that move
@@ -78,14 +78,14 @@ public class Detective_AI implements PlayerFactory {
 			return bestMoves;
 		}
 
-		private List<ScotlandYardPlayer> createPlayers(ScotlandYardView view) {
-			List<ScotlandYardPlayer> players = new ArrayList<>();
+		private List<GameTreePlayer> createPlayers(ScotlandYardView view) {
+			List<GameTreePlayer> players = new ArrayList<>();
 
 			for (int i = 0; i < view.getPlayers().size(); i++)
 			{
 				Colour currentPlayerColour = view.getPlayers().get(i);
 				Map<Ticket, Integer> playerTicketMap = getPlayerTicket(view, currentPlayerColour);
-				players.add(new ScotlandYardPlayer((scotlandYardView, i1, set, consumer) -> {}, currentPlayerColour, view.getPlayerLocation(currentPlayerColour), playerTicketMap));
+				players.add(new GameTreePlayer(currentPlayerColour, view.getPlayerLocation(currentPlayerColour), playerTicketMap));
 			}
 			return players;
 		}

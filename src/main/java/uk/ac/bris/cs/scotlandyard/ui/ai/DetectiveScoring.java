@@ -12,10 +12,8 @@ public class DetectiveScoring extends Scoring {
     private int totalScore;
     private DijkstraPath boardPath;
     private ScotlandYardView view;
-    private List<ScotlandYardPlayer> players;
 
-
-    public DetectiveScoring(ScotlandYardView view, int destination, List<ScotlandYardPlayer> players)
+    DetectiveScoring(ScotlandYardView view, int destination, List<GameTreePlayer> players)
     {
         super(view, destination, players);
         this.totalScore = 0;

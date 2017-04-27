@@ -8,11 +8,11 @@ import java.util.*;
 public class GameConfig {
 
     private ScotlandYardView view;
-    private List<ScotlandYardPlayer> players;
+    private List<GameTreePlayer> players;
     private int MrXScore;
     private Move move;
 
-    GameConfig(ScotlandYardView view, List<ScotlandYardPlayer> players, Move move)
+    GameConfig(ScotlandYardView view, List<GameTreePlayer> players, Move move)
     {
         this.view = view;
         this.players = players;
@@ -24,7 +24,7 @@ public class GameConfig {
         return MrXScore;
     }
 
-    public List<ScotlandYardPlayer> getPlayers(){
+    public List<GameTreePlayer> getPlayers(){
         return players;
     }
 
