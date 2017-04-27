@@ -31,54 +31,56 @@ public class MrX_AI implements PlayerFactory {
 	private static class MyPlayer implements Player {
 
 		GameTreeNode<GameConfig> bestNode;
-		int nodeTotal = 0;
 
 		@Override
 		public void makeMove(ScotlandYardView view, int location, Set<Move> moves, Consumer<Move> callback) {
 
-			Map<Move, Integer> movesWithScores = new HashMap<>();
+			// Create a list of players for the current configuration to be passed into MiniMax method
 			List<GameTreePlayer> players = createPlayers(view, location, null, 0, null);
+			// Current configuration node
 			GameTreeNode<GameConfig> gameTree = new GameTreeNode<>(new GameConfig(view, players, null));
 
-			// Add a score to an array for each move possible
-			for (Move move : moves)
-			{
-				if (move instanceof TicketMove) {
-					MrXScoring scoreObject = new MrXScoring(view, ((TicketMove) move).destination(), players);
-					movesWithScores.put(move, scoreObject.totalScore());
-				}
-				else if (move instanceof DoubleMove) {
-					MrXScoring scoreObject = new MrXScoring(view, ((DoubleMove) move).finalDestination(), players);
-					movesWithScores.put(move, scoreObject.totalScore());
-				}
-			}
+			// Use MiniMax to figure out the best move to take
+			minimax(view, players, 0, 0, gameTree, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
-			//List<ScotlandYardPlayer> players = createPlayers(view);
-			int bestScore = minimax(view, players, 0, 0, gameTree, Integer.MIN_VALUE, Integer.MAX_VALUE);
-			System.out.println("RESULT! Best Score = " + bestScore);
-
-			while (bestNode.getParent().getParent() != null) {
+			while (bestNode.getParent().getParent() != null)
 					bestNode = bestNode.getParent();
-			}
 
 			Move chosenMove = (bestNode.getData().getMove());
+			System.out.println("TicketMove: " + chosenMove);
 
-			double probSecretMove = 0.2;
-			if (view.getCurrentRound() != 0) {
-				if (view.isRevealRound())
-					probSecretMove = 0.7;
-			}
-
-			Random r = new Random();
-			double randomDouble = r.nextDouble();
-
-			if (randomDouble < probSecretMove)
-			{
-				chosenMove = new TicketMove(Colour.Black, Secret, ((TicketMove) chosenMove).destination());
+			Move newChosenMove = null;
+			if ((secretMoveChooser(view, view.getCurrentRound())) && (view.getPlayerTickets(Colour.Black, Secret) > 0)) {
+				if (chosenMove instanceof TicketMove)
+					newChosenMove = new TicketMove(Colour.Black, Secret, ((TicketMove) chosenMove).destination());
+				else if ((chosenMove instanceof DoubleMove) && view.getPlayerTickets(Colour.Black, Double) > 0)
+				{
+					boolean firstMoveSecret = secretMoveChooser(view, view.getCurrentRound());
+					boolean secondMoveSecret = secretMoveChooser(view, view.getCurrentRound() + 1);
+					if (firstMoveSecret && secondMoveSecret)
+					{
+						newChosenMove = new DoubleMove(Colour.Black, Secret, ((DoubleMove) chosenMove).firstMove().destination(), Secret, ((DoubleMove) chosenMove).finalDestination());
+					}
+					else if (!firstMoveSecret)
+					{
+						if (!secondMoveSecret)
+						{
+							newChosenMove = new DoubleMove(Colour.Black, ((DoubleMove) chosenMove).firstMove(), ((DoubleMove) chosenMove).secondMove());
+						}
+						else
+						{
+							newChosenMove = new DoubleMove(Colour.Black, ((DoubleMove) chosenMove).firstMove().ticket(), ((DoubleMove) chosenMove).firstMove().destination(), Secret, ((DoubleMove) chosenMove).finalDestination());
+						}
+					}
+				}
+				System.out.println("Secret/Double :" + newChosenMove);
+				callback.accept(newChosenMove);
+				return;
 			}
 
 			callback.accept(chosenMove);
 		}
+
 
 		private int minimax(ScotlandYardView view, List<GameTreePlayer> players, int level, int currentPlayer, GameTreeNode<GameConfig> currentNode, int alpha, int beta)
 		{
@@ -98,7 +100,21 @@ public class MrX_AI implements PlayerFactory {
 			//int bestScore = (currentPlayer == 0) ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 			int currentScore;
 
-			if (nextMoves.isEmpty() || level == 3) { // Terminating condition (if round being evaluated is a reveal round)
+			int roundsToNextRevealRound = 0;
+
+			for (int i = view.getCurrentRound(); i < view.getRounds().size(); i ++)
+			{
+				if (view.getRounds().get(i))
+				{
+					roundsToNextRevealRound =  (i + 1) - view.getCurrentRound();
+					break;
+				}
+			}
+
+			//roundsToNextRevealRound = 3;
+			//System.out.println(roundsToNextRevealRound);
+
+			if (nextMoves.isEmpty() || level == roundsToNextRevealRound) { // Terminating condition (if round being evaluated is a reveal round)
 				//System.out.println("minimax is returning: " + currentNode.getData().getMrXScore() + " when current player is : " + currentPlayer);
 				bestNode = currentNode;
 				return currentNode.getData().getMrXScore();
@@ -167,6 +183,21 @@ public class MrX_AI implements PlayerFactory {
 		}
 
 
+		private boolean secretMoveChooser(ScotlandYardView view, int roundToEvaluate) {
+			double probSecretMove = 0.2;
+			if (view.getCurrentRound() != 0) {
+				if (view.getRounds().get(roundToEvaluate))
+					probSecretMove = 0.7;
+			}
+
+			Random r = new Random();
+			double randomDouble = r.nextDouble();
+
+			return randomDouble < probSecretMove;
+		}
+
+
+
 		private List<GameTreePlayer> createPlayers(ScotlandYardView view, int MrXLocation, Colour colourToMove, int colourDestination, Ticket colourTicket) {
 			List<GameTreePlayer> players = new ArrayList<>();
 
@@ -201,112 +232,5 @@ public class MrX_AI implements PlayerFactory {
 			return ticketMap;
 		}
 
-		private Map<String, Set<Move>> findBestTicketMoves(Set<Move> moves, Map<Move, Integer> movesWithScores, int bestScore)
-		{
-			String[] ticketTypes = {"Regular", "Secret", "Double"};
-			Map<String, Set<Move>> bestTicketMoves = new HashMap<>();
-
-			for (String ticket : ticketTypes)
-			{
-				Set<Move> bestMoves = extractTicketMoves(moves, movesWithScores,  ticket);
-				bestTicketMoves.put(ticket, bestMoves);
-			}
-			return bestTicketMoves;
-		}
-
-		private Move chooseFromBestMoves(ScotlandYardView view, int location, Map<String, Set<Move>> bestTicketMoves, List<GameTreePlayer> players)
-		{
-			Set<Move> allMoves = new HashSet<>();
-
-			// Collecting all moves in one set
- 			for (String ticket : bestTicketMoves.keySet())
-			{
-				allMoves.addAll(bestTicketMoves.get(ticket));
-			}
-
-			// If only one move with highest score, then choose that
-			if (allMoves.size() == 1)
-				return new ArrayList<>(allMoves).get(0);
-
- 			// Probability of choosing a secret move increases if the current round is a reveal round
-			double probSecretMove = 0.2;
-			if (view.getCurrentRound() != 0) {
-				if (view.isRevealRound())
-					probSecretMove = 0.7;
-			}
-
-			// Probability of a choosing a double move increases if distance score is performing low
-			// NOTE: AI considers a detective being 4 moves away as good enough reason to use a double move
-			double probDoubleMove = 0.2;
-			int currentDistanceScore = new MrXScoring(view, location, players).distanceScore();
-			if (currentDistanceScore < (4 * view.getPlayers().size()))
-				probDoubleMove = 0.6;
-
-			// Random double generated for probability
-			Random r = new Random();
-			double randomDouble = r.nextDouble();
-
-			if ((randomDouble < probSecretMove) && (!bestTicketMoves.get("Secret").isEmpty())) {
-				return new ArrayList<>(bestTicketMoves.get("Secret")).get(r.nextInt(bestTicketMoves.get("Secret").size()));
-			}
-
-			randomDouble = r.nextDouble();
-			if ((randomDouble < probDoubleMove) && (!bestTicketMoves.get("Double").isEmpty())) {
-				return new ArrayList<>(bestTicketMoves.get("Double")).get(r.nextInt(bestTicketMoves.get("Double").size()));
-			}
-
-			else if (!bestTicketMoves.get("Regular").isEmpty()) {
-				return new ArrayList<>(bestTicketMoves.get("Regular")).get(r.nextInt(bestTicketMoves.get("Regular").size()));
-			}
-
-			else {
-				randomDouble = r.nextDouble();
-				if (randomDouble < 0.5 && (!bestTicketMoves.get("Secret").isEmpty()))
-					return new ArrayList<>(bestTicketMoves.get("Secret")).get(r.nextInt(bestTicketMoves.get("Secret").size()));
-				else
-					return new ArrayList<>(bestTicketMoves.get("Double")).get(r.nextInt(bestTicketMoves.get("Double").size()));
-			}
-		}
-
-		private Set<Move> extractTicketMoves(Set<Move> moves, Map<Move, Integer> movesWithScores, String ticket)
-		{
-			int bestScore = 0;
-			Set<Move> bestMoves = new HashSet<>();
-			for (Move move : moves)
-			{
-				if ((move instanceof TicketMove) && (ticket.equals("Regular"))) {
-					if ((((TicketMove) move).ticket().equals(Taxi)) || ((TicketMove) move).ticket().equals(Bus) || ((TicketMove) move).ticket().equals(Underground)){
-						if ((movesWithScores.get(move) > bestScore)) {
-							bestMoves.clear();
-							bestScore = movesWithScores.get(move);
-							bestMoves.add(move);
-						} else if (movesWithScores.get(move) == bestScore) {
-							bestMoves.add(move);
-						}
-					}
-				}
-				else if ((move instanceof TicketMove) && (ticket.equals("Secret"))) {
-					if (((TicketMove) move).ticket().equals(Secret)){
-						if ((movesWithScores.get(move) > bestScore)) {
-							bestMoves.clear();
-							bestScore = movesWithScores.get(move);
-							bestMoves.add(move);
-						} else if (movesWithScores.get(move) == bestScore) {
-							bestMoves.add(move);
-						}
-					}
-				}
-				else if ((move instanceof DoubleMove) && (ticket.equals("Double"))){
-						if ((movesWithScores.get(move) > bestScore)) {
-							bestMoves.clear();
-							bestScore = movesWithScores.get(move);
-							bestMoves.add(move);
-						} else if (movesWithScores.get(move) == bestScore) {
-							bestMoves.add(move);
-						}
-				}
-			}
-			return bestMoves;
-		}
 	}
 }

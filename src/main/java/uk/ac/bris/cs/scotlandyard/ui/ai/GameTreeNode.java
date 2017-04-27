@@ -7,7 +7,7 @@ import java.util.List;
 public class GameTreeNode<GameConfig> {
 
     private GameConfig data;
-    public GameTreeNode parent;
+    public GameTreeNode<GameConfig> parent;
     private List<GameTreeNode<GameConfig>> children;
 
     GameTreeNode(GameConfig data) {
@@ -24,13 +24,13 @@ public class GameTreeNode<GameConfig> {
     }
 
     public GameTreeNode<GameConfig> addChild(GameConfig child) {
-        GameTreeNode childNode = new GameTreeNode<>(child);
+        GameTreeNode<GameConfig> childNode = new GameTreeNode<>(child);
         childNode.parent = this;
         children.add(childNode);
         return childNode;
     }
 
-    public GameTreeNode getChildAt(int childIndex) {
+    public GameTreeNode<GameConfig> getChildAt(int childIndex) {
         return children.get(childIndex);
     }
 

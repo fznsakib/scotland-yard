@@ -17,10 +17,9 @@ public class GameTreePlayer {
     public GameTreePlayer(Colour colour, int location, Map<Ticket, Integer> tickets) {
         this.colour = colour;
         this.location = location;
-        this.tickets = new HashMap(tickets);
+        this.tickets = new HashMap<>(tickets);
     }
-
-
+    
     public Colour colour() {
         return this.colour;
     }
